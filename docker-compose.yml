@@ -1,0 +1,12 @@
+services:
+  reconstructor:
+    build: . 
+    image: latex_ia:latest 
+    container_name: latex_ia
+    env_file:
+      - .env.docker
+    volumes:
+      - ./data/raw:/app/data/raw
+      - ./output:/app/output
+    stdin_open: true
+    tty: true

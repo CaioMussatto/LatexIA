@@ -1,0 +1,25 @@
+[project]
+name = "latex-ia"
+version = "0.1.0"
+description = "Pipeline de extração de layout de artigos científicos"
+authors = [
+    { name = "Caio Mussatto", email = "Caio.mussatto@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "sqlalchemy",
+    "psycopg2-binary",
+    "python-dotenv",
+    "biopython",
+    "pymupdf",
+    "requests",
+    "pandas",
+    "scikit-learn",
+    "matplotlib>=3.10.8",
+    "seaborn>=0.13.2",
+    "joblib>=1.5.3",
+]
+
+[tool.setuptools]
+packages = ["src"]
