@@ -1,15 +1,27 @@
 import requests
+import logging
 import xml.etree.ElementTree as ET
-from src.data.db_session import SessionLocal
+from src.data.db_session import SessionLocal, init_db
 from src.data.models_db import PDFMetadata
 
+# Setup professional logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
+
 def seed_massive_diverse_pdfs():
+    """
+    Searches PubMed Central (PMC) for diverse topics and seeds the database
+    with PDF metadata (PMIDs) for later processing.
+    """
+    # 1. Initialize the database (Create tables if they don't exist)
+    init_db()
+
     terms = [
         "physics", "law", "economics", "engineering", "history", "biology", "mathematics", "sociology", 
         "chemistry", "philosophy", "psychology", "archaeology", "astronomy", "linguistics", "geology", 
         "medicine", "architecture", "politics", "art", "music", "literature", "ecology", "robotics", 
         "nanotechnology", "genetics", "neuroscience", "anthropology", "theology", "agriculture", 
-        "cryptography", "paleontology", "meteorology", "oceanography", "robotics", "aeronautics", 
+        "cryptography", "paleontology", "meteorology", "oceanography", "aeronautics", 
         "marketing", "journalism", "dentistry", "veterinary", "pharmacy", "nursing", "criminology", 
         "ethics", "pedagogy", "statistics", "metallurgy", "toxicology", "virology", "botany", "zoology",
         "hydrology", "seismology", "optics", "acoustics", "thermodynamics", "microbiology", "immunology", 
@@ -24,10 +36,11 @@ def seed_massive_diverse_pdfs():
     
     db = SessionLocal()
     total_terms = len(terms)
-    print(f"Starting metadata collection for {total_terms} areas")
+    logger.info(f"Starting metadata collection for {total_terms} areas")
 
     for index, term in enumerate(terms, 1):
         try:
+            # Fetch PMIDs from NCBI
             api_url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pmc&term={term}&retmax=10"
             r = requests.get(api_url, timeout=10)
             root = ET.fromstring(r.text)
@@ -35,6 +48,7 @@ def seed_massive_diverse_pdfs():
             
             new_count = 0
             for pmid in ids:
+                # Check if already exists to avoid duplicates
                 exists = db.query(PDFMetadata).filter(PDFMetadata.pmid == pmid).first()
                 if not exists:
                     db.add(PDFMetadata(pmid=pmid, processed=False))
@@ -42,15 +56,15 @@ def seed_massive_diverse_pdfs():
             
             db.commit()
             if new_count > 0:
-                print(f"[{index}/{total_terms}] {term.capitalize()}: {new_count} new PDFs added.")
+                logger.info(f"[{index}/{total_terms}] {term.capitalize()}: {new_count} new PDFs added.")
                 
         except Exception as e:
-            print(f"[{index}/{total_terms}] Error searching {term}: {e}")
+            logger.error(f"[{index}/{total_terms}] Error searching {term}: {e}")
             db.rollback()
             continue
             
     db.close()
-    print("Database seeding completed.")
+    logger.info("Database seeding completed.")
 
 if __name__ == "__main__":
     seed_massive_diverse_pdfs()
