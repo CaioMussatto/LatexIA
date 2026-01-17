@@ -2,17 +2,33 @@ import joblib
 import argparse
 import os
 from datetime import datetime
+import os
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+BASE_SRC = os.path.dirname(CURRENT_DIR) # Pasta 'src'
+OUTPUT_PATH = os.path.join(BASE_SRC, "output")
+
+os.makedirs(OUTPUT_PATH, exist_ok=True)
+
+DEFAULT_MODEL = os.path.join(CURRENT_DIR, "export", "layout_model.joblib")
 
 class AcademicEngine:
-    def __init__(self, model_path):
+    def __init__(self, model_path=None):
+        if model_path is None:
+            model_path = os.getenv("MODEL_PATH", DEFAULT_MODEL)
+        
         if os.path.exists(model_path):
             self.model = joblib.load(model_path)
+            print(f"✅ Modelo carregado com sucesso de: {model_path}")
+        else:
+            print(f"⚠️ Aviso: Modelo não encontrado em {model_path}. Lógica padrão ativa.")
 
     def _get_header(self):
         return r"""\documentclass[10pt, a4paper]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[margin=1.5cm, top=1cm, bottom=1.5cm]{geometry}
+\usepackage[paper=a4paper, top=2cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
 \usepackage{multicol}
 \usepackage{wrapfig}
 \usepackage{caption}
@@ -21,62 +37,64 @@ class AcademicEngine:
 \usepackage{lipsum}
 \usepackage{microtype}
 
-% Configuração de legenda e espaçamento
-\captionsetup{font=small, labelfont=bf, skip=5pt}
-\setlength{\intextsep}{5pt} % Espaço acima/abaixo do componente
-\setlength{\columnsep}{15pt}
+\captionsetup{font=small, labelfont=bf, skip=6pt, justification=centering}
+\setlength{\columnsep}{20pt}
+\setlength{\intextsep}{10pt}
 
 \pagestyle{empty}
 \raggedbottom
 
 \begin{document}
-\enlargethispage{2cm} % Força o conteúdo a caber na página 1
+\enlargethispage{2cm} % Margem de manobra para evitar quebra por milímetros
 """
 
     def _get_footer(self):
         return r"\end{document}"
 
-    def _generate_component(self, c_type, title, label="Legenda padrão do componente"):
+    def _generate_component(self, c_type, title, label="Scientific Data"):
         if c_type == "image":
-            return r"""\begin{tcolorbox}[colback=gray!5, colframe=black, arc=0mm, center]
-\centering \vspace{1.2cm} \Large \textbf{IMAGEM} \vspace{1.2cm}
+            return r"""\begin{tcolorbox}[colback=gray!2, colframe=black!80, arc=0mm, center, boxrule=0.5pt]
+\centering \vspace{1.2cm} \Large \textbf{IMAGE AREA} \vspace{1.2cm}
 \end{tcolorbox}
+\vspace{-5pt}
 \captionof{figure}{""" + label + " - " + title + "}"
         else:
             return r"""\begin{center}
 \small
 \begin{tabular}{@{}lll@{}} \toprule
-\textbf{Parâmetro} & \textbf{Valor} & \textbf{Status} \\ \midrule
-Layout & Acadêmico & Final \\
-Estabilidade & Blindada & OK \\ \bottomrule
+\textbf{Parameter} & \textbf{Value} & \textbf{Status} \\ \midrule
+Metric A & 0.95 & Verified \\
+Limit & 1 Page & Active \\ \bottomrule
 \end{tabular}
+\vspace{2pt}
 \captionof{table}{""" + label + " - " + title + "}" + r"\end{center}"
 
+
     def layout_full(self, _):
-        return r"\section*{Relatório Full}\begin{multicols}{2}\lipsum[1-10]\end{multicols}"
+        return r"\section*{Complete Report}\begin{multicols}{2}\lipsum[1-8]\end{multicols}"
 
     def layout_top(self, c_type):
-        comp = self._generate_component(c_type, "Topo")
-        return f"{comp}\n\\vspace{{5pt}}\n\\begin{{multicols}}{{2}}\\lipsum[1-8]\\end{{multicols}}"
+        comp = self._generate_component(c_type, "Top View")
+        return f"{comp}\n\\vspace{{10pt}}\n\\begin{{multicols}}{{2}}\\lipsum[1-7]\\end{{multicols}}"
 
     def layout_bottom(self, c_type):
-        comp = self._generate_component(c_type, "Bottom")
-        return f"\\begin{{multicols}}{{2}}\\lipsum[1-8]\\end{{multicols}}\n\\vfill\n{comp}"
+        comp = self._generate_component(c_type, "Bottom View")
+        return f"\\begin{{multicols}}{{2}}\\lipsum[1-7]\\end{{multicols}}\n\\vspace{{\\fill}}\n{comp}"
 
     def layout_middle(self, c_type):
-        comp = self._generate_component(c_type, "Middle")
-        return f"\\begin{{multicols}}{{2}}\\lipsum[1-3]\\end{{multicols}}\n{comp}\n\\begin{{multicols}}{{2}}\\lipsum[4-7]\\end{{multicols}}"
+        comp = self._generate_component(c_type, "Central View")
+        return f"\\begin{{multicols}}{{2}}\\lipsum[1-2]\\end{{multicols}}\n{comp}\n\\begin{{multicols}}{{2}}\\lipsum[3-6]\\end{{multicols}}"
 
     def layout_side(self, side, pos, c_type):
-        # Ajustamos o número de linhas (15) para garantir o espaçamento da legenda
         comp = self._generate_component(c_type, f"Lateral {pos.capitalize()}")
+        lines = 16
         
         if pos == "top":
-            return f"\\begin{{wrapfigure}}[15]{{{side}}}{{0.48\\textwidth}}\n{comp}\n\\end{{wrapfigure}}\n\\lipsum[1-10]"
+            return f"\\begin{{wrapfigure}}[{lines}]{{{side}}}{{0.48\\textwidth}}\n{comp}\n\\end{{wrapfigure}}\n\\lipsum[1-7]"
         elif pos == "middle":
-            return f"\\lipsum[1-3]\n\\begin{{wrapfigure}}[15]{{{side}}}{{0.48\\textwidth}}\n{comp}\n\\end{{wrapfigure}}\n\\lipsum[4-10]"
-        else: # bottom
-            return f"\\lipsum[1-6]\n\\begin{{wrapfigure}}[15]{{{side}}}{{0.48\\textwidth}}\n{comp}\n\\end{{wrapfigure}}\n\\lipsum[7-10]"
+            return f"\\lipsum[1-2]\n\\begin{{wrapfigure}}[{lines}]{{{side}}}{{0.48\\textwidth}}\n{comp}\n\\end{{wrapfigure}}\n\\lipsum[3-7]"
+        else: 
+            return f"\\lipsum[1-5]\n\\begin{{wrapfigure}}[{lines}]{{{side}}}{{0.48\\textwidth}}\n{comp}\n\\end{{wrapfigure}}\n\\lipsum[11-12]"
 
 def main():
     parser = argparse.ArgumentParser()
@@ -85,8 +103,7 @@ def main():
     parser.add_argument("--pos", choices=["top", "middle", "bottom"], default="top")
     
     args = parser.parse_args()
-    model_path = '/home/caio/Latex_ia/src/models/export/layout_model.joblib'
-    engine = AcademicEngine(model_path)
+    engine = AcademicEngine()
     
     if args.layout in ["left", "right"]:
         side = "l" if args.layout == "left" else "r"
@@ -101,12 +118,12 @@ def main():
     final_tex = engine._get_header() + content + engine._get_footer()
     
     ts = datetime.now().strftime("%H%M%S")
-    filename = f"FINAL_PAGE_{args.layout}_{args.pos}_{ts}.tex"
+    filename = os.path.join(OUTPUT_PATH, f"FINAL_{args.layout}_{args.pos}_{ts}.tex")
     
     with open(filename, "w", encoding="utf-8") as f:
         f.write(final_tex)
     
-    print(f"✅ Versão Final Única Página Gerada: {filename}")
+    print(f"✅ Gerado (Página Única Real): {filename}")
 
 if __name__ == "__main__":
     main()

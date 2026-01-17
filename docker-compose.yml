@@ -1,12 +1,44 @@
+# --------------------------------------------------------------------------
+# Project: LaTeX IA 
+# Author: Caio Mussatto <caio.mussatto@gmail.com>
+# Version: 1.1.0 (Local Database Mode)
+# Description: Engine for reconstructing academic layouts on a single page..
+# --------------------------------------------------------------------------
+
+
 services:
   reconstructor:
-    build: . 
-    image: latex_ia:latest 
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: latex_ia:latest
     container_name: latex_ia
-    env_file:
-      - .env.docker
+    
+    labels:
+      maintainer: "Caio <caio.mussatto@gmail.com>"
+      project: "latex-ia-reconstructor"
+      status: "development"
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/src
+      - MODEL_PATH=/app/src/models/export/layout_model.joblib
+      - OUTPUT_DIR=/app/src/output
+
     volumes:
-      - ./data/raw:/app/data/raw
-      - ./output:/app/output
+      - ./data:/app/data        
+      - ./src:/app/src      
+    
     stdin_open: true
     tty: true
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G 
+
+    command: ["uv", "run", "python", "src/models/inference.py", "full", "image"]
+
+networks:
+  default:
+    name: latex_ia_local_net

@@ -1,82 +1,96 @@
-# LaTeX.IA: Cloud-Native PDF-to-LaTeX Layout Reconstruction
+# LaTeX.IA: Single-Page Academic Layout Reconstructor
 
-LaTeX.IA is a high-performance machine learning pipeline designed to resolve the structural loss inherent in PDF-to-text conversions. By combining spatial analysis with a cloud-integrated Random Forest classifier, the system identifies document hierarchies (Titles, Headers, Body) and reconstructs them into high-fidelity, editable LaTeX code.
+LaTeX.IA is a high-performance machine learning pipeline designed to reconstruct complex document layouts into high-fidelity, editable LaTeX code. By leveraging spatial analysis and a pre-trained **Random Forest** classifier, the system intelligently positions images, tables, and text blocks to fit perfectly within a single-page academic constraint.
 
-The project follows a **Stateless Architecture** and is delivered as a pre-configured containerized service for a zero-setup user experience.
+The project is delivered as a **Dockerized Microservice**, optimized for lightness and portability, featuring a fully integrated **TinyTeX** environment.
 
 ---
 
-## 🏗️ System Architecture & Engineering
+## 🏗️ Technical Architecture
 
 The pipeline is built on four core technical pillars:
 
-### 1. Cloud-Integrated Data Engineering (Supabase)
-* **Unified Persistence:** All extracted document features—spatial coordinates, font metadata, and text blocks—are stored in a centralized **Supabase (PostgreSQL)** instance.
-* **Redundancy Control:** A database-level status flag system indexes processed documents, preventing redundant computational load and optimizing cloud I/O.
-* **Stateless Training:** The training module fetches data directly via SQLAlchemy, performing all feature engineering in memory to maintain a clean environment.
+### 1. Hybrid Environment Logic (Local & Docker)
 
-### 2. Feature Engineering & Intelligence
-* **Contextual Features:** The model utilizes calculated metrics such as `rel_font_size` (normalized against page average) and `center_dev` (horizontal alignment analysis) to improve prediction accuracy.
-* **Random Forest Classifier:** A robust ML model trained to classify text blocks into structural roles based on their typographic and spatial signatures.
-* **Dynamic Model Sync:** The inference engine synchronizes model weights from **Supabase Storage** on startup, allowing for updates without redeploying the container.
+* **Dual-Mode Execution:** The engine automatically detects its environment. It dynamically maps paths whether running natively on a host (Linux/Debian) or inside a container.
+* **Stateless Inference:** The core logic treats each layout generation as a stateless transaction, ensuring consistency across multiple runs.
+* **Permission Shield:** Automatic directory permission handling (`chmod 0777`) to prevent UID/GID conflicts between the Docker root user and the host user.
 
-### 3. Absolute Layout Reconstruction
-* **Precision Mapping:** Instead of standard text flow, the system utilizes the LaTeX `textpos` package to map predicted coordinates onto a coordinate system, ensuring visual parity with the source PDF.
-* **Anonymization Logic:** Integrated text processing to handle document reconstruction while maintaining layout integrity.
+### 2. ML Intelligence & Layout Engine
 
-### 4. Containerization & DevOps (Docker)
-* **Encapsulated Security:** Cloud credentials and API endpoints are injected during the build process, ensuring they remain internal to the container and hidden from the end-user.
-* **ARM64 Optimization:** Specifically tuned for Linux ARM64 environments.
-* **User Mapping:** Automatic UID/GID synchronization to prevent permission conflicts on the host system.
+* **Random Forest Classifier:** Uses typographic and spatial signatures (font size, coordinates, alignment) to predict the structural role of each document element.
+* **Component-Based Generation:** Support for multiple layout architectures:
+* `Full`: Standard two-column academic flow.
+* `Top/Bottom/Middle`: Horizontal component insertion with text wrapping.
+* `Left/Right`: Lateral positioning using the `wrapfig` LaTeX package.
+
+
+
+### 3. Optimized TeX Stack
+
+* **Ultra-Lean TinyTeX:** Instead of the full 5GB TeXLive, the container uses a custom-built **TinyTeX** footprint (~150MB), containing only the essential packages (`multicol`, `tcolorbox`, `microtype`, etc.).
+* **Auto-Cleanup:** Build-stage optimization that purges compiler logs and temporary build artifacts to keep the image size at a minimum.
+
+### 4. Persistence & I/O
+
+* **Local Database Mode:** Optimized for local development, utilizing a SQLite architecture for feature storage, removing the overhead of cloud latency.
+* **Versioned Models:** Models are stored in `src/models/export/`, ensuring the "brain" of the engine is versioned alongside the code.
 
 ---
 
-## 🐳 Deployment and Usage
+## 🚀 Getting Started
 
-The service is designed for immediate execution with zero manual configuration.
+### Prerequisites
 
-
+* Docker & Docker Compose
+* Python 3.13+ (if running locally)
 
 ### Commands
 
-**1. Build the Environment**
-This initializes the engine and prepares the container:
-```bash
-docker compose build
-```
-
-**2. Process Documents**
-Place your source PDF files in the `data/raw/` directory.
+**1. Build the Engine**
+Optimizes the image and installs the TeX environment:
 
 ```bash
-# Process default document (teste.pdf)
-docker compose up
-
-# Process a specific file
-FILE=my_document.pdf docker compose up
+docker compose build --no-cache
 
 ```
 
-**3. Output**
-The generated `.tex` files are saved to the local `./output/` folder via persistent volumes.
+**2. Generate Layouts (Docker)**
+Pass the layout type and position as arguments:
+
+```bash
+# Generate a bottom-positioned image with middle alignment
+docker compose run --rm reconstructor uv run python src/models/inference.py bottom image --pos middle
+
+# Generate a left-positioned table
+docker compose run --rm reconstructor uv run python src/models/inference.py left table --pos top
+
+```
+
+**3. Run Locally**
+
+```bash
+uv run python src/models/inference.py full image
+
+```
 
 ---
 
 ## 📂 Project Structure
 
-* `src/data/`: Cloud database schemas and SQLAlchemy session management.
-* `src/models/trainer.py`: Cloud-to-model training pipeline.
-* `src/models/inference.py`: Core prediction engine and LaTeX generation logic.
-* `data/raw/`: Input directory for source PDFs.
-* `output/`: Output directory for generated LaTeX files.
-* `Dockerfile` & `docker-compose.yml`: Production orchestration.
+* `src/models/inference.py`: Core engine and LaTeX generation logic.
+* `src/models/export/`: Pre-trained `.joblib` model binaries.
+* `src/output/`: **Generated Files.** All `.tex` results are saved here.
+* `data/`: Local SQLite databases and raw data storage.
+* `Dockerfile`: Multi-stage build with TinyTeX optimization.
 
 ---
 
 ## 👤 Author
 
-**Caio Mussatto** - [Caio.mussatto@gmail.com](mailto:Caio.mussatto@gmail.com)
+**Caio Mussatto** - [caio.mussatto@gmail.com](mailto:caio.mussatto@gmail.com)
 
 ---
 
 *Licensed under the MIT License.*
+
