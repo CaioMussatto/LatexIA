@@ -1,7 +1,7 @@
 # LaTeX.IA: Single-Page Academic Layout Reconstructor
 ![Python](https://img.shields.io/badge/python-3.13-blue.svg?style=for-the-badge&logo=python&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg?style=for-the-badge&logo=postgresql&logoColor=white)
+![UV](https://img.shields.io/badge/UV-0.9-blue.svg?style=for-the-badge&logo=python&logoColor=white)
 
 LaTeX.IA is a high-performance machine learning pipeline designed to reconstruct complex document layouts into high-fidelity, editable LaTeX code. By leveraging spatial analysis and a pre-trained **Random Forest** classifier, the system intelligently positions images, tables, and text blocks to fit perfectly within a single-page academic constraint.
 
